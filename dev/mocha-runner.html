@@ -12,11 +12,8 @@
       mocha.setup('bdd');
     </script>
     <script type="module" src="../app/calc.test.js"></script>
-    <script>
-      // Note: wait for async imports
-      setTimeout(() => {
-        mocha.run();
-      }, 1000);
+    <script type="module">
+      mocha.run();
     </script>
   </body>
 </html>

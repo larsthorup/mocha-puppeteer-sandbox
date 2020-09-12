@@ -7,7 +7,6 @@ TODO:
 - write test results
 - write coverage results
 - chromePath
-- wait for async import
 
 ```bash
 npm install
