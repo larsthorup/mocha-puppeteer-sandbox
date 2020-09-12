@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as util from 'util';
 import httpServer from 'http-server';
 import puppeteer from 'puppeteer-core';
@@ -69,7 +70,11 @@ const runningMochaInPuppeteer = async () => {
 };
 
 const writingResult = (mochaResult) => {
-  // TODO: save results
+  fs.mkdirSync('output/test', { recursive: true });
+  fs.writeFileSync(
+    'output/test/mocha-test-result.json',
+    JSON.stringify(mochaResult, null, 2)
+  );
   // TODO: save coverage
 };
 
