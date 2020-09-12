@@ -2,10 +2,6 @@
 
 Run mocha tests with puppeteer and produce test and coverage results.
 
-TODO:
-
-- chromePath
-
 ```bash
 npm install
 npm test

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as util from 'util';
+import ChromeLauncher from 'chrome-launcher';
 import httpServer from 'http-server';
 import puppeteer from 'puppeteer-core';
 import puppeteerToIstanbul from 'puppeteer-to-istanbul';
@@ -11,8 +12,6 @@ const port = 8081;
 const url = `http://127.0.0.1:${port}/dev/mocha-runner.html`;
 const reporter = 'dot';
 const timeout = 60000;
-const chromePath =
-  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
 
 const main = async () => {
   try {
@@ -32,24 +31,16 @@ const startingServer = async () => {
 };
 
 const runningMochaInPuppeteer = async () => {
+  const chromePaths = ChromeLauncher.Launcher.getInstallations();
+  console.log({ chromePaths });
+  const [chromePath] = chromePaths;
   const options = {
     executablePath: chromePath,
   };
   const browser = await puppeteer.launch(options);
   const pages = await browser.pages();
   const page = pages.pop();
-  page.on('console', (msg) => {
-    const args = msg._args;
-    Promise.all(args.map((a) => a.jsonValue().catch(() => ''))).then((args) => {
-      // process stdout stub
-      let isStdout = args[0] === 'stdout:';
-      isStdout && (args = args.slice(1));
-
-      let msg = util.format(...args);
-      !isStdout && msg && (msg += '\n');
-      process.stdout.write(msg);
-    });
-  });
+  page.on('console', mochaConsoleHandler);
   page.on('pageerror', ({ message }) => {
     console.error(message);
   });
@@ -95,7 +86,6 @@ const writingResult = (result) => {
       (url.endsWith('.js') || url.endsWith('.css')) &&
       !url.endsWith('.test.js')
     ) {
-      // console.log(url, ranges.length);
       totalBytes += text ? text.length : 0;
       for (let range of ranges) {
         // console.log(range.start, range.end);
@@ -103,17 +93,24 @@ const writingResult = (result) => {
       }
     }
   }
-  // console.log(usedBytes, totalBytes);
   console.log(`Code coverage in bytes: ${(usedBytes / totalBytes) * 100}%`);
-  // fs.mkdirSync('output/coverage', { recursive: true });
   puppeteerToIstanbul.write(coverage, {
     includeHostname: true,
     storagePath: './.nyc_output',
   });
-  // fs.writeFileSync(
-  //   'output/test/coverage.json',
-  //   JSON.stringify(result.coverageResult)
-  // );
+};
+
+const mochaConsoleHandler = (msg) => {
+  const args = msg._args;
+  Promise.all(args.map((a) => a.jsonValue().catch(() => ''))).then((args) => {
+    // process stdout stub
+    let isStdout = args[0] === 'stdout:';
+    isStdout && (args = args.slice(1));
+
+    let msg = util.format(...args);
+    !isStdout && msg && (msg += '\n');
+    process.stdout.write(msg);
+  });
 };
 
 function initMocha(reporter) {
