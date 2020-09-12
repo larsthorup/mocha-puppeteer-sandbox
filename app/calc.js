@@ -15,6 +15,10 @@ export const divide = (a, b) => {
   return a / b;
 };
 
+export const unusedFunction = (a, b) => {
+  return a - b;
+};
+
 export const reverse = (list) => {
   const result = [];
   for (let i = list.length - 1; i >= 0; --i) {

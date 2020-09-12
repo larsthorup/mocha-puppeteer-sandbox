@@ -16,9 +16,9 @@ const chromePath =
 const main = async () => {
   try {
     await startingServer();
-    const mochaResult = await runningMochaInPuppeteer();
-    await writingResult(mochaResult);
-    process.exit(mochaResult.result.stats.failures > 0 ? 1 : 0);
+    const result = await runningMochaInPuppeteer();
+    await writingResult(result);
+    process.exit(result.mochaResult.result.stats.failures > 0 ? 1 : 0);
   } catch (err) {
     console.error(err);
     process.exit(1);
@@ -60,22 +60,53 @@ const runningMochaInPuppeteer = async () => {
   });
   page.on('dialog', (dialog) => dialog.dismiss());
   await page.evaluateOnNewDocument(initMocha, reporter);
+  await page.coverage.startJSCoverage();
+  await page.coverage.startCSSCoverage();
   await page.goto(url);
   await page.waitForFunction(() => window.__mochaResult__, {
     timeout,
   });
   const mochaResult = await page.evaluate(() => window.__mochaResult__);
+  const jsCoverage = await page.coverage.stopJSCoverage();
+  const cssCoverage = await page.coverage.stopCSSCoverage();
   await browser.close();
-  return mochaResult;
+  return {
+    mochaResult,
+    jsCoverage,
+    cssCoverage,
+  };
 };
 
-const writingResult = (mochaResult) => {
+const writingResult = (result) => {
   fs.mkdirSync('output/test', { recursive: true });
   fs.writeFileSync(
     'output/test/mocha-test-result.json',
-    JSON.stringify(mochaResult, null, 2)
+    JSON.stringify(result.mochaResult, null, 2)
   );
-  // TODO: save coverage
+  const coverage = [...result.jsCoverage, ...result.cssCoverage];
+  let totalBytes = 0;
+  let usedBytes = 0;
+  for (let { ranges, text, url } of coverage) {
+    if (
+      !url.includes('/node_modules/') &&
+      (url.endsWith('.js') || url.endsWith('.css')) &&
+      !url.endsWith('.test.js')
+    ) {
+      // console.log(url, ranges.length);
+      totalBytes += text ? text.length : 0;
+      for (let range of ranges) {
+        // console.log(range.start, range.end);
+        usedBytes += range.end - range.start - 1;
+      }
+    }
+  }
+  // console.log(usedBytes, totalBytes);
+  console.log(`Code coverage in bytes: ${(usedBytes / totalBytes) * 100}%`);
+  // fs.mkdirSync('output/coverage', { recursive: true });
+  // fs.writeFileSync(
+  //   'output/test/coverage.json',
+  //   JSON.stringify(result.coverageResult)
+  // );
 };
 
 function initMocha(reporter) {
@@ -135,7 +166,7 @@ function initMocha(reporter) {
             failures: failures.map(clean),
             passes: passes.map(clean),
           },
-          coverage: window.__coverage__,
+          // coverage: window.__coverage__,
         };
       }
 
