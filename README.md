@@ -4,7 +4,6 @@ Run mocha tests with puppeteer and produce test and coverage results.
 
 TODO:
 
-- write coverage results
 - chromePath
 
 ```bash

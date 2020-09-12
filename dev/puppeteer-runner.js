@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as util from 'util';
 import httpServer from 'http-server';
 import puppeteer from 'puppeteer-core';
+import puppeteerToIstanbul from 'puppeteer-to-istanbul';
 
 // Note: inspired by https://github.com/direct-adv-interfaces/mocha-headless-chrome/
 
@@ -67,8 +68,10 @@ const runningMochaInPuppeteer = async () => {
     timeout,
   });
   const mochaResult = await page.evaluate(() => window.__mochaResult__);
-  const jsCoverage = await page.coverage.stopJSCoverage();
-  const cssCoverage = await page.coverage.stopCSSCoverage();
+  const [jsCoverage, cssCoverage] = await Promise.all([
+    page.coverage.stopJSCoverage(),
+    page.coverage.stopCSSCoverage(),
+  ]);
   await browser.close();
   return {
     mochaResult,
@@ -103,6 +106,10 @@ const writingResult = (result) => {
   // console.log(usedBytes, totalBytes);
   console.log(`Code coverage in bytes: ${(usedBytes / totalBytes) * 100}%`);
   // fs.mkdirSync('output/coverage', { recursive: true });
+  puppeteerToIstanbul.write(coverage, {
+    includeHostname: true,
+    storagePath: './.nyc_output',
+  });
   // fs.writeFileSync(
   //   'output/test/coverage.json',
   //   JSON.stringify(result.coverageResult)
