@@ -9,7 +9,10 @@
     <div id="mocha"></div>
     <script src="../node_modules/mocha/mocha.js"></script>
     <script>
-      mocha.setup('bdd');
+      mocha.setup({
+        reporter: 'spec',
+        ui: 'bdd',
+      });
     </script>
     <script type="module" src="../app/calc.test.js"></script>
     <script type="module">
